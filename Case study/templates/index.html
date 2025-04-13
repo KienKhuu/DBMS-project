@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hospital Real-Time Dashboard</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 2rem; background: #f9f9f9; }
+    h1 { color: #333; }
+    .section { margin-top: 2rem; }
+    .box { background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    pre { background: #eee; padding: 0.5rem; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>🏥 Hospital Real-Time Dashboard</h1>
+
+  <div class="section box">
+    <h2>🧪 Triage Queues</h2>
+    <strong>Urgent:</strong>
+    <pre id="urgent-list">Loading...</pre>
+    <strong>Normal:</strong>
+    <pre id="normal-list">Loading...</pre>
+  </div>
+
+  <div class="section box">
+    <h2>🛏️ Bed Assignments (20 beds)</h2>
+    <pre id="bed-status">Loading...</pre>
+  </div>
+
+  <script>
+    const socket = io();
+
+    async function updateDashboard() {
+      const [triageRes, bedRes] = await Promise.all([
+        fetch('/triage'),
+        fetch('/beds')
+      ]);
+
+      const triage = await triageRes.json();
+      const beds = await bedRes.json();
+
+      document.getElementById("urgent-list").innerText = triage.urgent.join("\n") || "None";
+      document.getElementById("normal-list").innerText = triage.normal.join("\n") || "None";
+
+      let bedText = "";
+      for (const [bed, info] of Object.entries(beds)) {
+        const patient = info.patient || "empty";
+        const status = info.status || "unknown";
+        bedText += `${bed}: ${patient} (${status})\n`;
+      }
+      document.getElementById("bed-status").innerText = bedText.trim();
+    }
+
+    socket.on("update", () => {
+      updateDashboard();
+    });
+
+    setInterval(updateDashboard, 2000); // fallback poll
+    updateDashboard(); // initial
+  </script>
+</body>
+</html>
