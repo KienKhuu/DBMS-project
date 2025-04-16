@@ -16,16 +16,28 @@ def dashboard():
 
 @app.route("/triage")
 def get_triage():
-    urgent = r.zrange("triage:urgent", 0, -1)
-    normal = r.zrange("triage:normal", 0, -1)
+    # Convert zrange results to lists explicitly
+    urgent_ids = r.zrange("triage:urgent", 0, -1) or []
+    normal_ids = r.zrange("triage:normal", 0, -1) or []
+
+    urgent = []
+    for patient_id in urgent_ids:
+        patient_data = r.hgetall(f"Patient {patient_id}")
+        urgent.append(patient_data)
+
+    normal = []
+    for patient_id in normal_ids:
+        patient_data = r.hgetall(f"Patient {patient_id}")
+        normal.append(patient_data)
+
     return jsonify({"urgent": urgent, "normal": normal})
 
 
 @app.route("/beds")
 def get_beds():
     beds = {}
-    for i in range(1, 21):
-        key = f"bed:{i}"
+    for i in range(1, 11):
+        key = f"Bed {i}"
         beds[key] = r.hgetall(key)
     return jsonify(beds)
 
@@ -38,5 +50,6 @@ def emit_updates():
 
 
 if __name__ == "__main__":
+    r.flushdb()
     threading.Thread(target=emit_updates).start()
     socketio.run(app, debug=True)

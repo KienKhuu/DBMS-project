@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hospital Real-Time Dashboard</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 2rem; background: #f9f9f9; }
+    h1 { color: #333; }
+    .section { margin-top: 2rem; }
+    .box { background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>🏥 Hospital Real-Time Dashboard</h1>
+
+  <div class="section box">
+    <h2>🧪 Triage Queues</h2>
+    <h3>Urgent</h3>
+    <table id="urgent-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Symptom</th>
+          <th>Severity</th>
+          <th>Arrival Time</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Normal</h3>
+    <table id="normal-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Symptom</th>
+          <th>Severity</th>
+          <th>Arrival Time</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section box">
+    <h2>🛏️ Bed Assignments (20 beds)</h2>
+    <table id="bed-table">
+      <thead>
+        <tr>
+          <th>Bed</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Symptom</th>
+          <th>Severity</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const socket = io();
+
+    async function updateDashboard() {
+      const [triageRes, bedRes] = await Promise.all([
+        fetch('/triage'),
+        fetch('/beds')
+      ]);
+
+      const triage = await triageRes.json();
+      const beds = await bedRes.json();
+
+      // Update Urgent Table
+      const urgentTableBody = document.getElementById("urgent-table").querySelector("tbody");
+      urgentTableBody.innerHTML = "";
+      triage.urgent.forEach(patient => {
+        const row = `<tr>
+          <td>${patient.id || "N/A"}</td>
+          <td>${patient.name || "N/A"}</td>
+          <td>${patient.symptom || "N/A"}</td>
+          <td>${patient.severity || "N/A"}</td>
+          <td>${new Date(parseFloat(patient.arrival_time) * 1000).toLocaleString() || "N/A"}</td>
+        </tr>`;
+        urgentTableBody.innerHTML += row;
+      });
+
+      // Update Normal Table
+      const normalTableBody = document.getElementById("normal-table").querySelector("tbody");
+      normalTableBody.innerHTML = "";
+      triage.normal.forEach(patient => {
+        const row = `<tr>
+          <td>${patient.id || "N/A"}</td>
+          <td>${patient.name || "N/A"}</td>
+          <td>${patient.symptom || "N/A"}</td>
+          <td>${patient.severity || "N/A"}</td>
+          <td>${new Date(parseFloat(patient.arrival_time) * 1000).toLocaleString() || "N/A"}</td>
+        </tr>`;
+        normalTableBody.innerHTML += row;
+      });
+
+      // Update Bed Table
+      const bedTableBody = document.getElementById("bed-table").querySelector("tbody");
+      bedTableBody.innerHTML = "";
+      for (const [bed, info] of Object.entries(beds)) {
+        const row = `<tr>
+          <td>${bed}</td>
+          <td>${info.id || "N/A"}</td>
+          <td>${info.name || "N/A"}</td>
+          <td>${info.symptom || "N/A"}</td>
+          <td>${info.severity || "N/A"}</td>
+          <td>${info.status || "N/A"}</td>
+        </tr>`;
+        bedTableBody.innerHTML += row;
+      }
+    }
+
+    socket.on("update", () => {
+      updateDashboard();
+    });
+
+    setInterval(updateDashboard, 500); // fallback poll
+    updateDashboard(); // initial
+  </script>
+</body>
+</html>
