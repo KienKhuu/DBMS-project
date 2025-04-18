@@ -20,7 +20,7 @@ symptoms = ["Fever", "Chest Pain", "Bleeding", "Headache", "Breathing Problem"]
 
 bed_keys = [f"Bed {i}" for i in range(1, 11)]  # 10 beds
 
-# Initialize all beds to available
+# Initialize all beds to available for 10 beds
 for bed in bed_keys:
     r.hset(
         bed,
