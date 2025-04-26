@@ -18,7 +18,7 @@ names = [
 ]
 symptoms = ["Fever", "Chest Pain", "Bleeding", "Headache", "Breathing Problem"]
 
-bed_keys = [f"Bed {i}" for i in range(1, 11)]  # 10 beds
+bed_keys = [f"Bed {i}" for i in range(1, 6)]  # 10 beds
 
 # Initialize all beds to available for 10 beds
 for bed in bed_keys:
@@ -49,7 +49,7 @@ def simulate_patient():
         # print("ID: ", r.hget(f"Patient {ID}", "id"))
         # print("Name:", r.hget(f"Patient {ID}", "name"))
         ID += 1
-        time.sleep(0.5)
+        time.sleep(2)
 
 
 def classify_triage():
@@ -69,7 +69,7 @@ def classify_triage():
                 last_id = event_id
 
 
-def release_bed_after(bed_key, delay=20):
+def release_bed_after(bed_key, delay=10):
     def release():
         time.sleep(delay)
         r.hset(
@@ -88,14 +88,14 @@ def release_bed_after(bed_key, delay=20):
 
 def assign_resources():
     while True:
-        for triage_key in ["triage:urgent", "triage:normal"]:
+        for triage_key in ["triage:emergency", "triage:urgent", "triage:normal"]:
             patient = r.zrange(triage_key, 0, 0)
             if not patient or not isinstance(patient, list):
                 continue
             patient_id = patient[0]
             patient_name = r.hget(f"Patient {patient_id}", "name")
             patient_symptom = r.hget(f"Patient {patient_id}", "symptom")
-            patient_severtity = r.hget(f"Patient {patient_id}", "severity")
+            patient_severity = r.hget(f"Patient {patient_id}", "severity")
             # print(patient_id, patient_name)
             for bed in bed_keys:
                 status = r.hget(bed, "status")
@@ -106,14 +106,14 @@ def assign_resources():
                             "id": patient_id,
                             "name": patient_name,
                             "symptom": patient_symptom,
-                            "severity": patient_severtity,
+                            "severity": patient_severity,
                             "status": "occupied",
                         },
                     )
                     r.zrem(triage_key, patient_id)
                     release_bed_after(bed)
                     break
-        time.sleep(2)
+        time.sleep(4)
 
 
 if __name__ == "__main__":
